@@ -16,7 +16,8 @@ class Agent_Policy:
                  action_space=3,
                  reward_decay=0.97,
                  learning_rate=1e-3,
-                 average_round_num=1
+                 average_round_num=1,
+                 baseline_decay=0.5
                  ):
 
         self.action_space = action_space
@@ -24,6 +25,7 @@ class Agent_Policy:
         self.reward_decay = reward_decay
         self.learning_rate = learning_rate
         self.average_round_num = average_round_num
+        self.baseline_decay = baseline_decay
 
         self.round_state, self.round_action, self.round_reward = [], [], []
         self.grads_average = []
@@ -83,7 +85,7 @@ class Agent_Policy:
             cumulative = cumulative * self.reward_decay + round_reward[t]
             discounted_round_rewards[t] = cumulative
 
-        discounted_round_rewards -= np.mean(discounted_round_rewards)*0.5
+        discounted_round_rewards -= np.mean(discounted_round_rewards)*self.baseline_decay
         discounted_round_rewards /= np.std(discounted_round_rewards)
         return round_state, round_action, discounted_round_rewards
 
@@ -220,5 +222,5 @@ def test(game_name, trained_weight_dir="./weight/policy_net_weight.h5"):
 
 
 if __name__ == '__main__':
-    #train('LunarLander-v2', 10000)
-    test('LunarLander-v2')
+    train('LunarLander-v2', 10000)
+    #test('LunarLander-v2')
