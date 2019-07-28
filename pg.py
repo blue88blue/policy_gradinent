@@ -6,6 +6,7 @@ import pandas as pd
 import gym
 import time
 import os
+from datetime import datetime
 
 
 class Agent_Policy:
@@ -127,9 +128,12 @@ class Agent_Policy:
 
 def train(game_name, round_num = 10000):
 
+    # tensorboard
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    train_summary_writer = tf.summary.create_file_writer('./output/log/'+current_time)
+    train_summary_writer.set_as_default()
+
     env = gym.make(game_name)  # 游戏环境
-    ob_min = env.observation_space.low
-    ob_mm = env.observation_space.high - env.observation_space.low
     agent = Agent_Policy(input_shape=env.observation_space.shape, action_space=env.action_space.n)
     train_gole = []
     train_reward =[]
@@ -149,7 +153,6 @@ def train(game_name, round_num = 10000):
             # 环境返回下一个状态，以及得分
             next_state, reward, done, info = env.step(action)
             accmulated_reward.append(reward)
-            #next_state = (next_state - ob_min) / ob_mm  # 归一化到0-1
 
             # 存储回合数据
             agent.collect_round_data(state, action, reward)
@@ -159,9 +162,12 @@ def train(game_name, round_num = 10000):
                 gole = agent.update(round)
                 train_gole.append([round, float(gole)])
                 time2 = time.time()
-                if round%agent.average_round_num==0:
+                if round % agent.average_round_num==0:
                     train_reward.append(sum(accmulated_reward))
                     print("Round:%s   time:%0.5f   gole:%.4f   reward:%s" % (round, time2-time1, gole, sum(accmulated_reward)))
+
+                    # tensorboard
+                    tf.summary.scalar('reward', data=sum(accmulated_reward), step=round)
                 break
 
             # 更新状态
@@ -169,6 +175,7 @@ def train(game_name, round_num = 10000):
 
         # 保存权重, 并进行测试-----------------------------------------------------
         if round%50 == 0:
+
             train_gole_df = pd.DataFrame(train_gole)
             train_gole_df.to_csv('./output/train_gole.csv')  # 保存csv
             train_reward_df = pd.DataFrame(train_reward)
